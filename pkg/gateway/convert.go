@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -47,5 +48,14 @@ func convertAPIGWResponse(r events.APIGatewayProxyResponse, w http.ResponseWrite
 	for key, val := range r.Headers {
 		w.Header().Set(key, val)
 	}
+
+	if r.IsBase64Encoded {
+		data, err := base64.StdEncoding.DecodeString(r.Body)
+		if err == nil {
+			w.Write(data)
+			return
+		}
+	}
+
 	w.Write([]byte(r.Body))
 }
