@@ -1,0 +1,23 @@
+name: build
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  
+jobs:
+  build:
+    name: building lambo
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+  
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '1.17' # The Go version to download (if necessary) and use.
+    - run: go version
+    
+    - name: Run test
+      run: go test -race ./...
+

@@ -1,0 +1,32 @@
+builds:
+  -
+    id: lambo
+    main: ./cmd/lambo
+    binary: lambo
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+archives:
+  -
+    format: binary
+    name_template: "{{ .Binary}}.{{ .Os }}.{{ .Arch }}"
+
+release:
+  github:
+    owner: liamg
+    name: lambo
+
