@@ -1,7 +1,7 @@
 # Lambo
 
 <p align="center">
-	<img src="lamb.jpg">
+	<img height="890px" src="lamb.png">
 </p>
 
 Test API Gateway wrapped lambda functions locally.
