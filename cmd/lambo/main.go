@@ -14,6 +14,7 @@ func main() {
 
 	listenAddr := "127.0.0.1:3000"
 	timeout := time.Second * 30
+	var environmentVariables []string
 
 	var rootCmd = &cobra.Command{
 		Use:  "lambo [lambda-path]",
@@ -23,6 +24,7 @@ func main() {
 			invokerOptions := []invoker.Option{
 				invoker.OptionWithDebugLogging(),
 				invoker.OptionWithMaxDuration(timeout),
+				invoker.OptionWithEnvVars(environmentVariables),
 			}
 
 			path := args[0]
@@ -44,6 +46,7 @@ func main() {
 		},
 	}
 
+	rootCmd.Flags().StringArrayVarP(&environmentVariables, "env-var", "e", environmentVariables, "Add environment variable to expose to the lambda")
 	rootCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", listenAddr, "The server will listen for requests on this address and route them to your local lambda function.")
 	rootCmd.Flags().DurationVarP(&timeout, "timeout", "t", timeout, "Maximum duration to allow a single invocation of the lambda to run for.")
 	rootCmd.Execute()

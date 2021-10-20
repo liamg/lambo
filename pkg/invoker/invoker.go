@@ -42,6 +42,7 @@ type Invoker struct {
 	invMu          sync.Mutex
 	invocations    map[string]Invocation
 	debug          bool
+	envVars        []string
 }
 
 type Invocation struct {
@@ -94,11 +95,13 @@ func (i *Invoker) Launch() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, absolutePath)
-	cmd.Env = append(os.Environ(), []string{
+	env := append(i.envVars, []string{
 		fmt.Sprintf("%s=%s", envServerAddr, i.listener.Addr().String()), // disable rpc
 		fmt.Sprintf("%s=%s", envRPCPort, ""),                            // disable rpc
 	}...)
+
+	cmd := exec.CommandContext(ctx, absolutePath)
+	cmd.Env = append(os.Environ(), env...)
 	cmd.Dir = workingDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
