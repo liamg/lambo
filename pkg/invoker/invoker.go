@@ -81,6 +81,19 @@ func (i *Invoker) Launch() error {
 	i.log("Lambda function is at %s", absolutePath)
 	i.log("Working directory set to %s", workingDir)
 
+	stat, err := os.Stat(absolutePath)
+	if err != nil {
+		return fmt.Errorf("failed to stat lambda: %w", err)
+	}
+
+	if stat.IsDir() {
+		return fmt.Errorf("lambda is a directory")
+	}
+
+	if stat.Mode().Perm()&0111 == 0 {
+		return fmt.Errorf("lambda is not executable")
+	}
+
 	listenAddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
 	if err != nil {
 		return err

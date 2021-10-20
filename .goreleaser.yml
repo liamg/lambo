@@ -30,3 +30,16 @@ release:
     owner: liamg
     name: lambo
 
+dockers:
+  - 
+    goos: linux
+    goarch: amd64
+    ids:
+    - lambo
+
+    dockerfile: Dockerfile
+    skip_push: auto
+    image_templates:
+    - "ghcr.io/liamg/lambo:latest"
+    - "ghcr.io/liamg/lambo:{{ .Tag }}"
+    - "ghcr.io/liamg/lambo:v{{ .Major }}.{{ .Minor }}"

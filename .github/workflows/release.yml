@@ -17,7 +17,14 @@ jobs:
         stable: 'false'
         go-version: '1.17'
     - run: go version
-    
+ 
+    - name: Docker Login
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}   
+
     - name: Release
       uses: goreleaser/goreleaser-action@v2
       with: 
@@ -25,3 +32,4 @@ jobs:
        args: release --rm-dist
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
