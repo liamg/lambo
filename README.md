@@ -24,6 +24,6 @@ lambo --listen-addr 127.0.0.1:3000 ./my-lambda
 ### Docker
 
 ```bash
-docker run -it -v `pwd`:/app ghcr.io/liamg/lambo:latest /app/my-lambda
+docker run -it -p "3000:3000" -v `pwd`:/app ghcr.io/liamg/lambo:latest /app/my-lambda
 ```
 
