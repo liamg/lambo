@@ -31,7 +31,7 @@ docker run -it -p "3000:3000" -v `pwd`:/app ghcr.io/liamg/lambo:latest /app/my-l
 
 ### Further configuration
 
-```bash
+```
 Usage:
   lambo [lambda-path] [flags]
 
