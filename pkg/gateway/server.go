@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -25,7 +26,12 @@ func New(i *invoker.Invoker, options ...Option) *Gateway {
 
 func (g *Gateway) ListenAndServe(addr string, options ...Option) error {
 	g.log("Starting API gateway at http://%s...", addr)
-	return http.ListenAndServe(addr, http.HandlerFunc(g.handler))
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	g.log("API gateway is ready!")
+	return http.Serve(listener, http.HandlerFunc(g.handler))
 }
 
 func (g *Gateway) log(format string, args ...interface{}) {
