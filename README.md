@@ -6,7 +6,9 @@
 
 Test API Gateway wrapped lambda functions locally.
 
-Lambo can also be used to test API GW lambdas in CI without needing docker-in-docker.
+Lambo can also be used to test API GW lambdas in CI without needing docker-in-docker. It will take all HTTP requests and route them to a local invocation of your lambda function.
+
+It comes after I had great difficulty getting sam-cli working via DinD in CI.
 
 <p align="center">
 	<img src="demo.gif">
