@@ -29,3 +29,15 @@ lambo --listen-addr 127.0.0.1:3000 ./my-lambda
 docker run -it -p "3000:3000" -v `pwd`:/app ghcr.io/liamg/lambo:latest /app/my-lambda
 ```
 
+### Further configuration
+
+```bash
+Usage:
+  lambo [lambda-path] [flags]
+
+Flags:
+  -e, --env-var stringArray   Add environment variable to expose to the lambda
+  -h, --help                  help for lambo
+  -l, --listen-addr string    The server will listen for requests on this address and route them to your local lambda function. (default "127.0.0.1:3000")
+  -t, --timeout duration      Maximum duration to allow a single invocation of the lambda to run for. (default 30s)
+```
