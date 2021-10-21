@@ -29,15 +29,18 @@ func convertHTTPRequest(r *http.Request) events.APIGatewayProxyRequest {
 	gw.Path = r.URL.Path
 
 	gw.QueryStringParameters = map[string]string{}
+	gw.MultiValueQueryStringParameters = map[string][]string{}
 
 	for key, val := range r.URL.Query() {
 		if len(val) == 1 {
 			gw.QueryStringParameters[key] = val[0]
+			gw.MultiValueQueryStringParameters[key] = val
 			continue
 		}
 		for i, value := range val {
 			gw.QueryStringParameters[fmt.Sprintf("%s[%d]", key, i)] = value
 		}
+		gw.MultiValueQueryStringParameters[key] = val
 	}
 
 	return gw
