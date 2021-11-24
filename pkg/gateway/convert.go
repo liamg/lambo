@@ -12,9 +12,11 @@ import (
 func convertHTTPRequest(r *http.Request) events.APIGatewayProxyRequest {
 	var gw events.APIGatewayProxyRequest
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err == nil {
-		gw.Body = string(body)
+	if r.Body != nil {
+		body, err := ioutil.ReadAll(r.Body)
+		if err == nil {
+			gw.Body = string(body)
+		}
 	}
 
 	gw.Headers = map[string]string{}
@@ -26,7 +28,7 @@ func convertHTTPRequest(r *http.Request) events.APIGatewayProxyRequest {
 	}
 
 	gw.HTTPMethod = r.Method
-	gw.Path = r.URL.Path
+	gw.Path = r.URL.RawPath
 
 	gw.QueryStringParameters = map[string]string{}
 	gw.MultiValueQueryStringParameters = map[string][]string{}
