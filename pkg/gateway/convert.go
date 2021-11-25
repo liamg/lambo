@@ -5,19 +5,38 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"unicode"
 
 	"github.com/aws/aws-lambda-go/events"
 )
 
+func isAsciiPrintable(s []byte) bool {
+	for _, r := range []rune(string(s)) {
+		if r > unicode.MaxASCII || !unicode.IsPrint(r) {
+			return false
+		}
+	}
+	return true
+}
+
 func convertHTTPRequest(r *http.Request) events.APIGatewayProxyRequest {
 	var gw events.APIGatewayProxyRequest
+
+	var encoded bool
 
 	if r.Body != nil {
 		body, err := ioutil.ReadAll(r.Body)
 		if err == nil {
-			gw.Body = string(body)
+			if isAsciiPrintable(body) {
+				gw.Body = string(body)
+			} else {
+				encoded = true
+				gw.Body = base64.StdEncoding.EncodeToString(body)
+			}
 		}
 	}
+
+	gw.IsBase64Encoded = encoded
 
 	gw.Headers = map[string]string{}
 	for key, val := range r.Header {
@@ -28,7 +47,7 @@ func convertHTTPRequest(r *http.Request) events.APIGatewayProxyRequest {
 	}
 
 	gw.HTTPMethod = r.Method
-	gw.Path = r.URL.RawPath
+	gw.Path = r.URL.Path
 
 	gw.QueryStringParameters = map[string]string{}
 	gw.MultiValueQueryStringParameters = map[string][]string{}
