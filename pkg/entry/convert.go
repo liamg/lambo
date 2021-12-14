@@ -1,13 +1,15 @@
-package gateway
+package entry
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"unicode"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/liamg/lambo/pkg/event"
 )
 
 func isAsciiPrintable(s []byte) bool {
@@ -19,7 +21,7 @@ func isAsciiPrintable(s []byte) bool {
 	return true
 }
 
-func convertHTTPRequest(r *http.Request) events.APIGatewayProxyRequest {
+func convertHTTPRequest(r *http.Request) event.InvocationEvent {
 	var gw events.APIGatewayProxyRequest
 
 	var encoded bool
@@ -64,22 +66,55 @@ func convertHTTPRequest(r *http.Request) events.APIGatewayProxyRequest {
 		gw.MultiValueQueryStringParameters[key] = val
 	}
 
-	return gw
+	return event.InvocationEvent{
+		EventType: event.APIGatewayEventType,
+		EventBody: gw,
+	}
 }
 
-func convertAPIGWResponse(r events.APIGatewayProxyResponse, w http.ResponseWriter) {
+func convertAPIGWResponse(eventResponse event.InvocationEventResponse, w http.ResponseWriter) error {
+
+	if eventResponse.ResponseType != event.APIGatewayResponseType {
+		return fmt.Errorf("response is not the expected type")
+	}
+
+	r := eventResponse.ResponseBody.(events.APIGatewayProxyResponse)
+
 	w.WriteHeader(r.StatusCode)
 	for key, val := range r.Headers {
 		w.Header().Set(key, val)
+	}
+
+	if r.StatusCode == http.StatusNoContent {
+		return nil
+	}
+
+	if len(r.Body) == 0 {
+		return nil
 	}
 
 	if r.IsBase64Encoded {
 		data, err := base64.StdEncoding.DecodeString(r.Body)
 		if err == nil {
 			w.Write(data)
-			return
+			return nil
 		}
 	}
 
-	w.Write([]byte(r.Body))
+	_, err := w.Write([]byte(r.Body))
+	return err
 }
+
+func extractInvocationEvent(r *http.Request) (e event.InvocationEvent, err error) {
+	if r.Body != nil {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return e, err
+		}
+		if err := json.Unmarshal(body, &e); err != nil {
+			return e, err
+		}
+	}
+	return e, nil
+}
+

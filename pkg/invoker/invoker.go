@@ -16,6 +16,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/google/uuid"
+	"github.com/liamg/lambo/pkg/event"
 )
 
 const (
@@ -47,12 +48,12 @@ type Invoker struct {
 
 type Invocation struct {
 	ID       string
-	Request  events.APIGatewayProxyRequest
+	Request  interface{}
 	respChan chan InvocationResult
 }
 
 type InvocationResult struct {
-	Response events.APIGatewayProxyResponse
+	Response interface{}
 	Error    error
 }
 
@@ -151,8 +152,28 @@ func (i *Invoker) Close() error {
 	return i.listener.Close()
 }
 
-func (i *Invoker) Invoke(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func (i *Invoker) Invoke(e event.InvocationEvent) (*event.InvocationEventResponse, error) {
+	switch e.EventType {
+	case event.APIGatewayEventType:
+		request := e.EventBody.(events.APIGatewayProxyRequest)
+		response, err := i.invokeAPIGateway(request)
+		if err != nil {
+			return nil, err
+		}
+		return response, nil
+	default:
+		request := e.EventBody
+		response, err := i.invokeEvent(request)
+		if err != nil {
+			return nil, err
+		}
+		return response, nil
+	}
+}
 
+func (i *Invoker) invokeEvent(request interface{}) (*event.InvocationEventResponse, error) {
+
+	i.log("Invoking with a gateway request")
 	respChan := make(chan InvocationResult)
 
 	invocation := Invocation{
@@ -171,7 +192,6 @@ func (i *Invoker) Invoke(request events.APIGatewayProxyRequest) (*events.APIGate
 		i.invMu.Unlock()
 	}()
 
-	i.log("Invoking lambda for %s, with url path '%s'...", invocation.ID, request.Path)
 	i.invocationChan <- invocation
 	result := <-invocation.respChan
 
@@ -180,8 +200,49 @@ func (i *Invoker) Invoke(request events.APIGatewayProxyRequest) (*events.APIGate
 		return nil, result.Error
 	}
 
-	i.log("Invocation %s succeeded, status code %d, body length %d.", invocation.ID, result.Response.StatusCode, len(result.Response.Body))
-	return &result.Response, nil
+	response := result.Response
+	return &event.InvocationEventResponse{
+		ResponseType: event.Other,
+		ResponseBody: response,
+	}, nil
+}
+
+func (i *Invoker) invokeAPIGateway(request events.APIGatewayProxyRequest) (*event.InvocationEventResponse, error) {
+
+	i.log("Invoking with a gateway request")
+	respChan := make(chan InvocationResult)
+
+	invocation := Invocation{
+		Request:  request,
+		ID:       uuid.New().String(),
+		respChan: respChan,
+	}
+
+	i.invMu.Lock()
+	i.invocations[invocation.ID] = invocation
+	i.invMu.Unlock()
+
+	defer func() {
+		i.invMu.Lock()
+		delete(i.invocations, invocation.ID)
+		i.invMu.Unlock()
+	}()
+
+	i.log("Invoking lambda for %s:%s, with url path '%s'...", invocation.ID, request.HTTPMethod, request.Path)
+	i.invocationChan <- invocation
+	result := <-invocation.respChan
+
+	if result.Error != nil {
+		i.log("Invocation %s failed: %s", invocation.ID, result.Error)
+		return nil, result.Error
+	}
+
+	response := result.Response.(events.APIGatewayProxyResponse)
+	i.log("Invocation %s succeeded, status code %d, body length %d.", invocation.ID, response.StatusCode, len(response.Body))
+	return &event.InvocationEventResponse{
+		ResponseType: event.APIGatewayResponseType,
+		ResponseBody: response,
+	}, nil
 }
 
 func (i *Invoker) handleNext(w http.ResponseWriter, r *http.Request) {

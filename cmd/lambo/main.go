@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"time"
 
-	"github.com/liamg/lambo/pkg/gateway"
+	"github.com/liamg/lambo/pkg/entry"
 	"github.com/liamg/lambo/pkg/invoker"
 	"github.com/spf13/cobra"
 )
@@ -14,40 +12,40 @@ func main() {
 
 	listenAddr := "127.0.0.1:3000"
 	timeout := time.Second * 30
+	lambdaType := "gateway"
+	debugEnabled := false
 	var environmentVariables []string
 
 	var rootCmd = &cobra.Command{
 		Use:  "lambo [lambda-path]",
 		Args: cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 
 			invokerOptions := []invoker.Option{
-				invoker.OptionWithDebugLogging(),
+				invoker.OptionWithDebugLogging(debugEnabled),
 				invoker.OptionWithMaxDuration(timeout),
 				invoker.OptionWithEnvVars(environmentVariables),
 			}
 
 			path := args[0]
 			l := invoker.New(path, invokerOptions...)
-			go l.Launch()
-			defer l.Close()
+			go func() { _ = l.Launch() }()
+			defer func() { _ = l.Close() }()
 			time.Sleep(time.Second)
 
-			gwOptions := []gateway.Option{
-				gateway.OptionWithDebugLogging(),
+			gw, err := entry.NewEntryPoint(lambdaType, l, entry.OptionWithDebugLogging(debugEnabled))
+			if err != nil {
+				return err
 			}
 
-			gw := gateway.New(l, gwOptions...)
-
-			if err := gw.ListenAndServe(listenAddr); err != nil {
-				fmt.Fprintf(os.Stderr, "Server error: %s\n", err)
-				os.Exit(1)
-			}
+			return gw.ListenAndServe(listenAddr)
 		},
 	}
 
 	rootCmd.Flags().StringArrayVarP(&environmentVariables, "env-var", "e", environmentVariables, "Add environment variable to expose to the lambda")
 	rootCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", listenAddr, "The server will listen for requests on this address and route them to your local lambda function.")
+	rootCmd.Flags().StringVar(&lambdaType, "type", lambdaType, "The type of lambda choose from [gateway, triggered]")
 	rootCmd.Flags().DurationVarP(&timeout, "timeout", "t", timeout, "Maximum duration to allow a single invocation of the lambda to run for.")
-	rootCmd.Execute()
+	rootCmd.Flags().BoolVarP(&debugEnabled, "debug", "d", debugEnabled, "Enable debug logging.")
+	_ = rootCmd.Execute()
 }

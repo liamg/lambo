@@ -6,9 +6,9 @@ import (
 
 type Option func(i *Invoker)
 
-func OptionWithDebugLogging() Option {
+func OptionWithDebugLogging(debugEnabled bool) Option {
 	return func(i *Invoker) {
-		i.debug = true
+		i.debug = debugEnabled
 	}
 }
 
