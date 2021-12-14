@@ -1,4 +1,4 @@
-package gateway
+package entry
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ type Gateway struct {
 	debug   bool
 }
 
-func New(i *invoker.Invoker, options ...Option) *Gateway {
+func newGateway(i *invoker.Invoker, options ...Option) *Gateway {
 	g := &Gateway{
 		invoker: i,
 	}
@@ -24,7 +24,7 @@ func New(i *invoker.Invoker, options ...Option) *Gateway {
 	return g
 }
 
-func (g *Gateway) ListenAndServe(addr string, options ...Option) error {
+func (g *Gateway) ListenAndServe(addr string) error {
 	g.log("Starting API gateway at http://%s...", addr)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -32,6 +32,10 @@ func (g *Gateway) ListenAndServe(addr string, options ...Option) error {
 	}
 	g.log("API gateway is ready!")
 	return http.Serve(listener, http.HandlerFunc(g.handler))
+}
+
+func (g *Gateway) SetDebugging(enabled bool) {
+	g.debug = enabled
 }
 
 func (g *Gateway) log(format string, args ...interface{}) {
@@ -52,10 +56,16 @@ func (g *Gateway) handler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		g.log("Error sending request to lambda: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	g.log("Invocation succeeded, forwarding response to client.")
-	convertAPIGWResponse(*resp, w)
+	err = convertAPIGWResponse(*resp, w)
+	if err != nil {
+		g.log("Error sending request to lambda: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
 }
