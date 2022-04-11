@@ -36,6 +36,7 @@ const (
 
 type Invoker struct {
 	lambdaPath     string
+	dir            string
 	args           []string
 	apiVersion     string
 	invocationChan chan Invocation
@@ -79,6 +80,9 @@ func (i *Invoker) Launch() error {
 		return fmt.Errorf("failed to resolve absolute path to lambda: %w", err)
 	}
 	workingDir := filepath.Dir(absolutePath)
+	if i.dir != "" {
+		workingDir = i.dir
+	}
 
 	i.log("Lambda function is at %s", absolutePath)
 	i.log("Working directory set to %s", workingDir)

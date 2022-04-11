@@ -24,6 +24,12 @@ func OptionWithEnvVars(envVars []string) Option {
 	}
 }
 
+func OptionWithDir(dir string) Option {
+	return func(i *Invoker) {
+		i.dir = dir
+	}
+}
+
 func OptionWithArgs(args []string) Option {
 	return func(i *Invoker) {
 		i.args = args
