@@ -36,6 +36,7 @@ const (
 
 type Invoker struct {
 	lambdaPath     string
+	args           []string
 	apiVersion     string
 	invocationChan chan Invocation
 	listener       net.Listener
@@ -114,7 +115,7 @@ func (i *Invoker) Launch() error {
 		fmt.Sprintf("%s=%s", envRPCPort, ""),                            // disable rpc
 	}...)
 
-	cmd := exec.CommandContext(ctx, absolutePath)
+	cmd := exec.CommandContext(ctx, absolutePath, i.args...)
 	cmd.Env = append(os.Environ(), env...)
 	cmd.Dir = workingDir
 	cmd.Stdout = os.Stdout

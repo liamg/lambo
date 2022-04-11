@@ -23,3 +23,9 @@ func OptionWithEnvVars(envVars []string) Option {
 		i.envVars = envVars
 	}
 }
+
+func OptionWithArgs(args []string) Option {
+	return func(i *Invoker) {
+		i.args = args
+	}
+}
