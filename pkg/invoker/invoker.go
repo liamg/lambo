@@ -55,7 +55,7 @@ type Invocation struct {
 }
 
 type InvocationResult struct {
-	Response interface{}
+	Response []byte
 	Error    error
 }
 
@@ -178,7 +178,7 @@ func (i *Invoker) Invoke(e event.InvocationEvent) (*event.InvocationEventRespons
 
 func (i *Invoker) invokeEvent(request interface{}) (*event.InvocationEventResponse, error) {
 
-	i.log("Invoking with a gateway request")
+	i.log("Invoking with a custom request")
 	respChan := make(chan InvocationResult)
 
 	invocation := Invocation{
@@ -242,7 +242,11 @@ func (i *Invoker) invokeAPIGateway(request events.APIGatewayProxyRequest) (*even
 		return nil, result.Error
 	}
 
-	response := result.Response.(events.APIGatewayProxyResponse)
+	var response events.APIGatewayProxyResponse
+	if err := json.Unmarshal(result.Response, &response); err != nil {
+		return nil, err
+	}
+
 	i.log("Invocation %s succeeded, status code %d, body length %d.", invocation.ID, response.StatusCode, len(response.Body))
 	return &event.InvocationEventResponse{
 		ResponseType: event.APIGatewayResponseType,
@@ -351,7 +355,7 @@ func (i *Invoker) handleResponse(id string, w http.ResponseWriter, r *http.Reque
 
 	w.WriteHeader(http.StatusAccepted)
 	i.sendInvocationResult(id, InvocationResult{
-		Response: respBody,
+		Response: body,
 	})
 }
 
